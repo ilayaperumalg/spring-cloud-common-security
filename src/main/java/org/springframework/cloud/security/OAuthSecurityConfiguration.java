@@ -63,8 +63,6 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.accept.HeaderContentNegotiationStrategy;
 import org.springframework.web.context.request.NativeWebRequest;
 
-import static org.springframework.cloud.security.support.SecurityConfigUtils.dashboard;
-
 /**
  * Setup Spring Security OAuth for the Rest Endpoints of Spring Cloud Data Flow.
  *
@@ -98,7 +96,7 @@ public class OAuthSecurityConfiguration extends WebSecurityConfigurerAdapter {
 	private ApplicationEventPublisher applicationEventPublisher;
 
 	@Autowired
-	private AuthorizationConfig authorizationConfig;
+	private AuthorizationProperties authorizationProperties;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -106,49 +104,46 @@ public class OAuthSecurityConfiguration extends WebSecurityConfigurerAdapter {
 		final RequestMatcher textHtmlMatcher = new MediaTypeRequestMatcher(
 				new BrowserDetectingContentNegotiationStrategy(),
 				MediaType.TEXT_HTML);
-
 		final BasicAuthenticationEntryPoint basicAuthenticationEntryPoint = new BasicAuthenticationEntryPoint();
 		basicAuthenticationEntryPoint.setRealmName(securityProperties.getBasic().getRealm());
 		basicAuthenticationEntryPoint.afterPropertiesSet();
-
 		final Filter oauthFilter = oauthFilter();
 		BasicAuthenticationFilter basicAuthenticationFilter = new BasicAuthenticationFilter(
 				providerManager(), basicAuthenticationEntryPoint);
-
 		http.addFilterAfter(oauthFilter, basicAuthenticationFilter.getClass());
 		http.addFilterBefore(basicAuthenticationFilter, oauthFilter.getClass());
 		http.addFilterBefore(oAuth2AuthenticationProcessingFilter(), basicAuthenticationFilter.getClass());
-
+		this.authorizationProperties.getAuthenticatedPaths().add("/");
+		this.authorizationProperties.getAuthenticatedPaths().add(dashboard("/**"));
+		this.authorizationProperties.getAuthenticatedPaths().add(this.authorizationProperties.getDashboardUrl());
+		this.authorizationProperties.getPermitAllPaths().add(this.authorizationProperties.getDashboardUrl());
+		this.authorizationProperties.getPermitAllPaths().add(dashboard("/**"));
 		ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry security =
 
 				http.authorizeRequests()
-						.antMatchers(
-								"/favicon.ico",
-								"/security/info**", "/login**", dashboard("/logout-success-oauth.html"),
-								dashboard("/styles/**"), dashboard("/images/**"), "/assets/**", dashboard("/fonts/**"),
-								dashboard("/lib/**"))
+						.antMatchers(this.authorizationProperties.getPermitAllPaths().toArray(new String[0]))
 						.permitAll()
-						.antMatchers("/", dashboard("/**"), "/dashboard", "/features").authenticated();
-
-		if (authorizationConfig.isEnabled()) {
-			security = SecurityConfigUtils.configureSimpleSecurity(security, authorizationConfig);
+						.antMatchers(this.authorizationProperties.getAuthenticatedPaths().toArray(new String[0]))
+						.authenticated();
+		if (this.authorizationProperties.isEnabled()) {
+			security = SecurityConfigUtils.configureSimpleSecurity(security, this.authorizationProperties);
 			security.anyRequest().denyAll();
-			securityStateBean.setAuthorizationEnabled(true);
+			this.securityStateBean.setAuthorizationEnabled(true);
 		}
 		else {
 			security.anyRequest().authenticated();
-			securityStateBean.setAuthorizationEnabled(false);
+			this.securityStateBean.setAuthorizationEnabled(false);
 		}
-
 		http.httpBasic().and()
 				.logout()
 				.logoutSuccessUrl(dashboard("/logout-success-oauth.html"))
 				.and().csrf().disable()
 				.exceptionHandling()
-				.defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"), textHtmlMatcher)
+				.defaultAuthenticationEntryPointFor(
+						new LoginUrlAuthenticationEntryPoint(this.authorizationProperties.getLoginProcessingUrl()),
+						textHtmlMatcher)
 				.defaultAuthenticationEntryPointFor(basicAuthenticationEntryPoint, AnyRequestMatcher.INSTANCE);
-
-		securityStateBean.setAuthenticationEnabled(true);
+		this.securityStateBean.setAuthenticationEnabled(true);
 	}
 
 	@Bean
@@ -208,6 +203,10 @@ public class OAuthSecurityConfiguration extends WebSecurityConfigurerAdapter {
 			OAuth2AuthenticationFailureEvent oAuth2AuthenticationFailureEvent) {
 		logger.error("An error ocurred while accessing an authentication REST resource.",
 				oAuth2AuthenticationFailureEvent.getException());
+	}
+
+	private String dashboard(String path) {
+		return this.authorizationProperties.getDashboardUrl() + path;
 	}
 
 	private static class BrowserDetectingContentNegotiationStrategy extends HeaderContentNegotiationStrategy {

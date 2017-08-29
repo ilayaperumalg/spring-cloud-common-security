@@ -43,8 +43,6 @@ import org.springframework.session.web.http.HeaderHttpSessionStrategy;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.web.accept.ContentNegotiationStrategy;
 
-import static org.springframework.cloud.security.support.SecurityConfigUtils.dashboard;
-
 /**
  * Setup Spring Security with Basic Authentication for the Rest Endpoints and the
  * Dashboard of Spring Cloud Data Flow.
@@ -52,6 +50,8 @@ import static org.springframework.cloud.security.support.SecurityConfigUtils.das
  * For the OAuth2-specific configuration see {@link OAuthSecurityConfiguration}.
  *
  * @author Gunnar Hillert
+ * @author Ilayaperumal Gopinathan
+ *
  * @see OAuthSecurityConfiguration
  * @since 1.0
  */
@@ -67,7 +67,7 @@ public class BasicAuthSecurityConfiguration extends WebSecurityConfigurerAdapter
 	private SecurityProperties securityProperties;
 
 	@Autowired
-	private AuthorizationConfig authorizationConfig;
+	private AuthorizationProperties authorizationProperties;
 
 	@Autowired
 	private SecurityStateBean securityStateBean;
@@ -81,46 +81,54 @@ public class BasicAuthSecurityConfiguration extends WebSecurityConfigurerAdapter
 	protected void configure(HttpSecurity http) throws Exception {
 		final RequestMatcher textHtmlMatcher = new MediaTypeRequestMatcher(contentNegotiationStrategy,
 				MediaType.TEXT_HTML);
-
-		final String loginPage = dashboard("/#/login");
-
 		final BasicAuthenticationEntryPoint basicAuthenticationEntryPoint = new BasicAuthenticationEntryPoint();
 		basicAuthenticationEntryPoint.setRealmName(securityProperties.getBasic().getRealm());
 		basicAuthenticationEntryPoint.afterPropertiesSet();
-
+		this.authorizationProperties.getAuthenticatedPaths().add("/");
+		this.authorizationProperties.getPermitAllPaths().add(this.authorizationProperties.getDashboardUrl());
+		this.authorizationProperties.getPermitAllPaths().add(dashboard("/**"));
 		ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry security = http.csrf()
-				.disable().authorizeRequests().antMatchers("/").authenticated().antMatchers(dashboard("/**"),
-						"/authenticate", "/security/info", "/dashboard", "/features", "/assets/**")
+				.disable().authorizeRequests()
+				.antMatchers(this.authorizationProperties.getAuthenticatedPaths().toArray(new String[0])).authenticated()
+				.antMatchers(this.authorizationProperties.getPermitAllPaths().toArray(new String[0]))
 				.permitAll();
-
-		if (authorizationConfig.isEnabled()) {
-			security = SecurityConfigUtils.configureSimpleSecurity(security, authorizationConfig);
+		if (this.authorizationProperties.isEnabled()) {
+			security = SecurityConfigUtils.configureSimpleSecurity(security, authorizationProperties);
 		}
-
-		security.and().formLogin().loginPage(loginPage).loginProcessingUrl(dashboard("/login"))
-				.defaultSuccessUrl(dashboard("/")).permitAll().and().logout().logoutUrl(dashboard("/logout"))
-				.logoutSuccessUrl(dashboard("/logout-success.html"))
+		final String loginPage = dashboard(this.authorizationProperties.getLoginUrl());
+		security.and().formLogin().loginPage(loginPage)
+				.loginProcessingUrl(dashboard(this.authorizationProperties.getLoginProcessingUrl()))
+				.defaultSuccessUrl(dashboard("/")).permitAll().and().logout()
+				.logoutUrl(dashboard(this.authorizationProperties.getLogoutUrl()))
+				.logoutSuccessUrl(dashboard(this.authorizationProperties.getLogoutSuccessUrl()))
 				.logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler()).permitAll().and().httpBasic().and()
 				.exceptionHandling()
 				.defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint(loginPage), textHtmlMatcher)
 				.defaultAuthenticationEntryPointFor(basicAuthenticationEntryPoint, AnyRequestMatcher.INSTANCE);
-
-		if (authorizationConfig.isEnabled()) {
+		if (this.authorizationProperties.isEnabled()) {
 			security.anyRequest().denyAll();
 		}
 		else {
 			security.anyRequest().authenticated();
 		}
-
 		final SessionRepositoryFilter<ExpiringSession> sessionRepositoryFilter = new SessionRepositoryFilter<ExpiringSession>(
 				sessionRepository());
 		sessionRepositoryFilter.setHttpSessionStrategy(new HeaderHttpSessionStrategy());
 
 		http.addFilterBefore(sessionRepositoryFilter, ChannelProcessingFilter.class).csrf().disable();
 		http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
+		this.securityStateBean.setAuthenticationEnabled(true);
+		this.securityStateBean.setAuthorizationEnabled(true);
+	}
 
-		securityStateBean.setAuthenticationEnabled(true);
-		securityStateBean.setAuthorizationEnabled(true);
+	/**
+	 * Turn a relative link of the UI app to an absolute one, prepending its path.
+	 *
+	 * @param path relative UI path
+	 * @return the absolute UI path
+	 */
+	private String dashboard(String path) {
+		return this.authorizationProperties.getDashboardUrl() + path;
 	}
 
 }

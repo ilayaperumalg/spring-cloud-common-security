@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.LoggerFactory;
 
-import org.springframework.cloud.security.AuthorizationConfig;
+import org.springframework.cloud.security.AuthorizationProperties;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
@@ -38,8 +38,6 @@ public class SecurityConfigUtils {
 
 	public static final String ROLE_PREFIX = "ROLE_";
 
-	public static final String WEB_UI_INDEX_PAGE_ROUTE = "/dashboard";
-
 	public static final Pattern AUTHORIZATION_RULE;
 
 	static {
@@ -52,8 +50,8 @@ public class SecurityConfigUtils {
 	 */
 	public static ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry configureSimpleSecurity(
 			ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry security,
-			AuthorizationConfig authorizationConfig) {
-		for (String rule : authorizationConfig.getRules()) {
+			AuthorizationProperties authorizationProperties) {
+		for (String rule : authorizationProperties.getRules()) {
 			Matcher matcher = AUTHORIZATION_RULE.matcher(rule);
 			Assert.isTrue(matcher.matches(),
 					String.format("Unable to parse security rule [%s], expected format is 'HTTP_METHOD ANT_PATTERN => "
@@ -67,15 +65,5 @@ public class SecurityConfigUtils {
 			security = security.antMatchers(method, urlPattern).access(attribute);
 		}
 		return security;
-	}
-
-	/**
-	 * Turn a relative link of the UI app to an absolute one, prepending its path.
-	 *
-	 * @param path relative UI path
-	 * @return the absolute UI path
-	 */
-	public static String dashboard(String path) {
-		return WEB_UI_INDEX_PAGE_ROUTE + path;
 	}
 }

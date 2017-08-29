@@ -25,11 +25,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Properties for the Ldap security aspects of an application.
  *
  * @author Gunnar Hillert
- * @since 1.1.0
+ * @author Ilayaperumal Gopinathan
  */
-@ConfigurationProperties(prefix = "spring.cloud.security.authentication.ldap")
+@ConfigurationProperties(prefix = "security.authentication.ldap")
 @LdapSecurityPropertiesValid
 public class LdapSecurityProperties {
+
+	private boolean enabled = false;
 
 	@NotNull(message = "Provide a valid url to your Ldap server")
 	private URI url;
@@ -49,6 +51,14 @@ public class LdapSecurityProperties {
 	private String groupSearchBase = "";
 
 	private String groupRoleAttribute = "cn";
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
 
 	public URI getUrl() {
 		return url;

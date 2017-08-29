@@ -15,10 +15,9 @@
  */
 package org.springframework.cloud.security;
 
-import java.util.Properties;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.security.support.FileSecurityProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configurers.GlobalAuthenticationConfigurerAdapter;
@@ -30,46 +29,29 @@ import org.springframework.util.Assert;
  *
  * @author Eric Bottard
  * @author Gunnar Hillert
- * @since 1.1.0
+ * @author Ilayaperumal Gopinathan
  */
 @Configuration
-@ConditionalOnProperty(FileAuthenticationConfiguration.CONFIGURATION_PROPERTIES_PREFIX + ".enabled")
-@ConfigurationProperties(prefix = FileAuthenticationConfiguration.CONFIGURATION_PROPERTIES_PREFIX)
+@ConditionalOnProperty(name = "security.authentication.file.enabled", havingValue = "true", matchIfMissing = true)
 public class FileAuthenticationConfiguration extends GlobalAuthenticationConfigurerAdapter {
 
-	public static final String CONFIGURATION_PROPERTIES_PREFIX = "spring.cloud.security.authentication.file";
-
-	private Properties users;
-
-	public Properties getUsers() {
-		return users;
-	}
-
-	/**
-	 * Set users as {@link Properties}. Value (String) of the property must be in the
-	 * format e.g.: {@code bobspassword, ROLE_NAME}.
-	 *
-	 * @param users the property object with user password and roles
-	 */
-	public void setUsers(Properties users) {
-		this.users = users;
-	}
+	@Autowired
+	private FileSecurityProperties fileSecurityProperties;
 
 	/**
 	 * Initializes the {@link AuthenticationManagerBuilder}. Creates an
-	 * {@link InMemoryUserDetailsManager} with the provided
-	 * {@link FileAuthenticationConfiguration#getUsers()}.
-	 * {@link FileAuthenticationConfiguration#getUsers()} must contain at least 1 user.
+	 * {@link InMemoryUserDetailsManager} with the provided users. Users must contain at
+	 * least 1 user.
 	 *
-	 * @throws IllegalArgumentException if
-	 * {@link FileAuthenticationConfiguration#getUsers()} is empty.
+	 * @throws IllegalArgumentException if users is empty.
 	 */
 	@Override
 	public void init(AuthenticationManagerBuilder auth) throws Exception {
-		Assert.notEmpty(this.users, String.format("No user specified. Please specify at least 1 user (e.g. via '%s')",
-				CONFIGURATION_PROPERTIES_PREFIX + ".users"));
+		Assert.notEmpty(this.fileSecurityProperties.getUsers(),
+				String.format("No user specified. Please specify at least 1 user for the file based authentication."));
 
-		final InMemoryUserDetailsManager inMemory = new InMemoryUserDetailsManager(getUsers());
+		final InMemoryUserDetailsManager inMemory = new InMemoryUserDetailsManager(
+				this.fileSecurityProperties.getUsers());
 		auth.userDetailsService(inMemory);
 	}
 

@@ -32,11 +32,11 @@ public class OnDefaultBootUserAuthenticationEnabled extends NoneNestedConditions
 		super(ConfigurationPhase.REGISTER_BEAN);
 	}
 
-	@ConditionalOnProperty("spring.cloud.security.authentication.file.enabled")
+	@ConditionalOnProperty("security.authentication.file.enabled")
 	static class fileAuthenticationEnabled {
 	}
 
-	@ConditionalOnProperty("spring.cloud.security.authentication.ldap.enabled")
+	@ConditionalOnProperty("security.authentication.ldap.enabled")
 	static class ldapAuthenticationEnabled {
 	}
 }

@@ -20,7 +20,6 @@ import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.security.support.LdapSecurityProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.ldap.core.DirContextOperations;
@@ -33,15 +32,14 @@ import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 import org.springframework.util.StringUtils;
 
 /**
- * A security configuration that conditionally sets up in-memory users from a file.
+ * A security configuration that conditionally sets up LDAP based configuration.
  *
  * @author Marius Bogoevici
  * @author Gunnar Hillert
- * @since 1.1.0
+ * @author Ilayaperumal Gopinathan
  */
 @Configuration
-@ConditionalOnProperty("spring.cloud.security.authentication.ldap.enabled")
-@EnableConfigurationProperties(LdapSecurityProperties.class)
+@ConditionalOnProperty(name = "security.authentication.ldap.enabled", havingValue = "true", matchIfMissing = true)
 public class LdapAuthenticationConfiguration extends GlobalAuthenticationConfigurerAdapter {
 
 	@Autowired

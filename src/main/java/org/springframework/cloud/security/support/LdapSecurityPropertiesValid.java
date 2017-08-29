@@ -25,7 +25,6 @@ import javax.validation.Payload;
 
 /**
  * @author Gunnar Hillert
- * @since 1.1.0
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

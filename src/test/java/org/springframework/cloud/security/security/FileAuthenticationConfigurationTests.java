@@ -16,9 +16,16 @@
 package org.springframework.cloud.security.security;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.security.FileAuthenticationConfiguration;
+import org.springframework.cloud.security.support.FileSecurityProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -27,19 +34,36 @@ import static org.mockito.Mockito.mock;
 /**
  * @author Gunnar Hillert
  */
+@SpringBootTest(classes = FileAuthenticationConfigurationTests.FileAuthConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@RunWith(SpringJUnit4ClassRunner.class)
 public class FileAuthenticationConfigurationTests {
+
+	@Autowired
+	private FileAuthenticationConfiguration fileAuthenticationConfiguration;
 
 	@Test
 	public void testInitAuthenticationManagerBuilder() throws Exception {
 
 		try {
-			final FileAuthenticationConfiguration fileAuthenticationConfiguration = new FileAuthenticationConfiguration();
-			fileAuthenticationConfiguration.init(mock(AuthenticationManagerBuilder.class));
+			this.fileAuthenticationConfiguration.init(mock(AuthenticationManagerBuilder.class));
 		}
 		catch (IllegalArgumentException anIllegalArgumentException) {
 			assertThat(anIllegalArgumentException.getMessage(),
-					is("No user specified. Please specify at least 1 user (e.g. "
-							+ "via 'spring.cloud.security.authentication.file.users')"));
+					is("No user specified. Please specify at least 1 user for the file based authentication."));
+		}
+	}
+
+	@Configuration
+	public static class FileAuthConfiguration {
+
+		@Bean
+		public FileSecurityProperties fileSecurityProperties() {
+			return new FileSecurityProperties();
+		}
+
+		@Bean
+		public FileAuthenticationConfiguration fileAuthenticationConfiguration() {
+			return new FileAuthenticationConfiguration();
 		}
 	}
 
