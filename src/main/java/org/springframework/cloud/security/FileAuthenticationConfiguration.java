@@ -32,7 +32,6 @@ import org.springframework.util.Assert;
  * @author Ilayaperumal Gopinathan
  */
 @Configuration
-@ConditionalOnProperty(name = "security.authentication.file.enabled", havingValue = "true", matchIfMissing = true)
 public class FileAuthenticationConfiguration extends GlobalAuthenticationConfigurerAdapter {
 
 	@Autowired

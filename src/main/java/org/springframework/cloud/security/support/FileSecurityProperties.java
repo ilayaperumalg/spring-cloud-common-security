@@ -27,7 +27,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @author Ilayaperumal Gopinathan
  */
-@ConfigurationProperties(prefix = "security.authentication.file")
 public class FileSecurityProperties {
 
 	private boolean enabled = false;

@@ -39,7 +39,6 @@ import org.springframework.util.StringUtils;
  * @author Ilayaperumal Gopinathan
  */
 @Configuration
-@ConditionalOnProperty(name = "security.authentication.ldap.enabled", havingValue = "true", matchIfMissing = true)
 public class LdapAuthenticationConfiguration extends GlobalAuthenticationConfigurerAdapter {
 
 	@Autowired

@@ -27,7 +27,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Gunnar Hillert
  * @author Ilayaperumal Gopinathan
  */
-@ConfigurationProperties(prefix = "security.authorization")
 public class AuthorizationProperties {
 
 	private boolean enabled = true;
